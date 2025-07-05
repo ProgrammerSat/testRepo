@@ -14,6 +14,8 @@ const User = require("./models/User"); // Importing the schema
 mongoose.connect(MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
+  tls: true,
+  tlsAllowInvalidCertificates: false,
 });
 
 //Establishing connection with Mongo DB via mongoose
