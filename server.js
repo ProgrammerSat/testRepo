@@ -1,5 +1,5 @@
-const express = require("express");
 require("dotenv").config();
+const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const app = express();
@@ -14,10 +14,6 @@ const User = require("./models/User"); // Importing the schema
 mongoose.connect(MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-  tls: true,
-  tlsAllowInvalidCertificates: false,
-  ssl: true,
-  sslValidate: false,
 });
 
 //Establishing connection with Mongo DB via mongoose
