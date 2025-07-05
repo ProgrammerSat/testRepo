@@ -16,6 +16,8 @@ mongoose.connect(MONGO_URI, {
   useUnifiedTopology: true,
   tls: true,
   tlsAllowInvalidCertificates: false,
+  ssl: true,
+  sslValidate: false,
 });
 
 //Establishing connection with Mongo DB via mongoose
