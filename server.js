@@ -7,6 +7,7 @@ const port = process.env.PORT;
 const MONGO_URI = process.env.MONGO_URI;
 const usersRouter = require("./routes/users");
 const subscriptionsRouter = require("./routes/subscriptions");
+const couponsRouter = require("./routes/coupons");
 var cors = require("cors");
 const User = require("./models/User"); // Importing the schema
 
@@ -43,6 +44,7 @@ app.use(cors());
 
 app.use("/user", usersRouter);
 app.use("/subscription", subscriptionsRouter);
+app.use("/coupon", couponsRouter);
 
 // Starting the server
 app.listen(port, () => {

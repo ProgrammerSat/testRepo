@@ -92,6 +92,7 @@ router.post("/register", async (req, res) => {
     userSecretCode,
     subID, // optional, if user is already subscribed
     userSubscriptionStatus, // "PEN", "APR", "REJ"
+    userCpnActiveStatus,
     userLastUpdatedBy, // optional, can default to null or a name
   } = req.body;
 
@@ -106,12 +107,12 @@ router.post("/register", async (req, res) => {
       unitNumber,
       password: hashedPassword,
       phoneNumber,
-      userRole : userRole,
+      userRole: userRole,
       userActive: true,
       userSecretCode,
       subID,
       userSubscriptionStatus,
-      userCpnActiveStatus: false,
+      userCpnActiveStatus,
       userLastUpdatedBy,
     });
 
@@ -431,6 +432,10 @@ router.post("/verifySecretCode", async (req, res) => {
     console.error("Verification error:", err);
     return res.status(500).json({ message: "Server error" });
   }
+});
+
+router.post("/validateSecretCode", async (req, res) => {
+  const { unitNumber, userSecretCode } = req.body;
 });
 
 module.exports = router;

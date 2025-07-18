@@ -1,13 +1,24 @@
 const mongoose = require("mongoose");
 
 const couponSchema = new mongoose.Schema({
+
+  couponNomenclature: {
+    type: String,
+    required: true,
+  },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
   },
-  userUnitNo: {
+  userSubscriptionId: {
     type: mongoose.Schema.Types.ObjectId,
+    ref: "Subscription",
+    required: true,
+  },
+  unitNumber: {
+    type: String,
+    ref: "User",
     required: true,
   },
   userCouponEvent: {
