@@ -434,8 +434,5 @@ router.post("/verifySecretCode", async (req, res) => {
   }
 });
 
-router.post("/validateSecretCode", async (req, res) => {
-  const { unitNumber, userSecretCode } = req.body;
-});
 
 module.exports = router;

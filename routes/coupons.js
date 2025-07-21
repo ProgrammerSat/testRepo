@@ -178,4 +178,84 @@ router.post("/getUserCoupons", async (req, res) => {
   }
 });
 
+router.post("/redeemAllCoupons", async (req, res) => {
+  const { unitNumber, updatedBy } = req.body;
+
+  if (!unitNumber || !updatedBy) {
+    return res
+      .status(400)
+      .json({ error: "unitNumber and updatedBy are required" });
+  }
+
+  try {
+    // Find user by unit number
+    const user = await User.findOne({ unitNumber });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Find all active coupons for this user
+    const coupons = await Coupon.find({
+      userId: user._id,
+      userCouponStatus: "ACTIVE",
+    });
+
+    if (coupons.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "No active coupons found for this user" });
+    }
+
+    // Redeem all active coupons
+    const updatedCoupons = await Promise.all(
+      coupons.map(async (coupon) => {
+        coupon.userCouponStatus = "REDEEMED";
+        coupon.userLastUpdatedBy = updatedBy;
+        coupon.userLastUpdatedDate = new Date();
+        return await coupon.save();
+      })
+    );
+
+    return res.status(200).json({
+      message: "All active coupons redeemed successfully",
+      coupons: updatedCoupons,
+    });
+  } catch (err) {
+    console.error("Error redeeming all coupons:", err);
+    return res.status(500).json({
+      error: "Server error while redeeming all coupons",
+      details: err.message,
+    });
+  }
+});
+
+router.post("/getEventCoupons", async (req, res) => {
+  const { unitNumber, userCouponEvent, userCouponSubEvent } = req.body;
+
+  if (!unitNumber || !userCouponEvent || !userCouponSubEvent) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  try {
+    const user = await User.findOne({ unitNumber });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const coupons = await Coupon.find({
+      userId: user._id,
+      userCouponEvent,
+      userCouponSubEvent,
+    });
+
+    return res.status(200).json({ coupons, count: coupons.length });
+  } catch (err) {
+    return res
+      .status(500)
+      .json({ error: "Server error", details: err.message });
+  }
+});
+
 module.exports = router;

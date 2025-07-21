@@ -54,14 +54,9 @@ const subscriptionSchema = new mongoose.Schema({
   userTransfererBank: {
     type: String,
   },
-  userPaymentImages: {
-    type: [String],
-    validate: {
-      validator: function (arr) {
-        return arr.length <= 1;
-      },
-      message: "Only one image per payment type is allowed.",
-    },
+  userPaymentImageFileId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "uploads.files", // ref to GridFS files collection
   },
   userPaymentSubscriptionDesc: {
     type: String,
