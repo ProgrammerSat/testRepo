@@ -231,9 +231,9 @@ router.post("/redeemAllCoupons", async (req, res) => {
 });
 
 router.post("/getEventCoupons", async (req, res) => {
-  const { unitNumber, userCouponEvent, userCouponSubEvent } = req.body;
+  const { unitNumber, userCouponEvent } = req.body;
 
-  if (!unitNumber || !userCouponEvent || !userCouponSubEvent) {
+  if (!unitNumber || !userCouponEvent) {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
@@ -247,10 +247,21 @@ router.post("/getEventCoupons", async (req, res) => {
     const coupons = await Coupon.find({
       userId: user._id,
       userCouponEvent,
-      userCouponSubEvent,
     });
 
-    return res.status(200).json({ coupons, count: coupons.length });
+    const grouped = {
+      BREAKFAST: [],
+      LUNCH: [],
+      DINNER: [],
+    };
+
+    for (const coupon of coupons) {
+      if (grouped[coupon.userCouponSubEvent]) {
+        grouped[coupon.userCouponSubEvent].push(coupon);
+      }
+    }
+
+    return res.status(200).json(grouped);
   } catch (err) {
     return res
       .status(500)
