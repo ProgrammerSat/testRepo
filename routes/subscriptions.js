@@ -1,10 +1,40 @@
 const express = require("express");
-const router = express.Router();
+const mongoose = require("mongoose");
+const multer = require("multer");
+const { GridFsStorage } = require("multer-gridfs-storage");
+const crypto = require("crypto");
+const path = require("path");
+const dotenv = require("dotenv");
+const Coupon = require("../models/Coupon");
 const Subscription = require("../models/Subscription");
 const User = require("../models/User");
 
-// Create subscription/payment entry
-router.post("/create", async (req, res) => {
+dotenv.config();
+
+const router = express.Router();
+
+// Mongo URI
+const mongoURI = process.env.MONGO_URI;
+
+// GridFS Storage Engine
+const storage = new GridFsStorage({
+  url: mongoURI,
+  file: (req, file) =>
+    new Promise((resolve, reject) => {
+      crypto.randomBytes(16, (err, buf) => {
+        if (err) return reject(err);
+        const filename = buf.toString("hex") + path.extname(file.originalname);
+        resolve({ filename, bucketName: "uploads" });
+      });
+    }),
+});
+
+const upload = multer({ storage });
+
+// ======================
+// POST /subscription/create
+// ======================
+router.post("/create", upload.single("userPaymentImage"), async (req, res) => {
   try {
     const {
       userID,
@@ -18,53 +48,52 @@ router.post("/create", async (req, res) => {
       userChequeBankName,
       userPaymentRefID,
       userTransfererBank,
-      userPaymentImages,
       userPaymentSubscriptionDesc,
     } = req.body;
 
-    // Verify user exists
+    // Check user exists
     const user = await User.findOne({ unitNumber });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Create subscription
+    // Construct new subscription entry
     const newSub = new Subscription({
       userID,
       unitNumber,
       userSubscriptionStatus: "PEN",
       userSubscriptionDate: new Date(userSubscriptionDate) || new Date(),
-      userSubscriptionType: userSubscriptionType,
+      userSubscriptionType,
       userPaymentAmount,
-      userPaymentMode: userPaymentMode,
+      userPaymentMode,
       userPaymentGivenTo,
       userChequeNumber,
       userChequeBankName,
       userPaymentRefID,
       userTransfererBank,
-      userPaymentImages: userPaymentImages || "",
+      userPaymentImages: req.file?.filename || "", // Store uploaded GridFS filename
       userPaymentSubscriptionDesc,
       userSessionYear: new Date().getFullYear(),
     });
 
     await newSub.save();
 
-    res.status(201).json({
-      message: "Payment submitted successfully",
+    return res.status(201).json({
+      message: "Payment with image uploaded successfully",
       subscription: newSub,
     });
   } catch (err) {
-    console.error(err);
+    console.error("Error in /create route:", err);
     res.status(500).json({ message: "Internal server error" });
   }
 });
 
+// === Check Subscription Status ===
 router.post("/checkSubscriptionStatus", async (req, res) => {
   const { unitNumber } = req.body;
 
-  if (!unitNumber) {
+  if (!unitNumber)
     return res.status(400).json({ message: "unitNumber is required" });
-  }
 
   try {
     const subscription = await Subscription.findOne({ unitNumber }).sort({
@@ -89,14 +118,13 @@ router.post("/checkSubscriptionStatus", async (req, res) => {
   }
 });
 
-// POST or GET – adjust based on frontend
+// === Get Subscription Summary ===
 router.post("/getUserSubscriptionSummary", async (req, res) => {
   try {
     const { unitNumber } = req.body;
 
-    if (!unitNumber) {
+    if (!unitNumber)
       return res.status(400).json({ message: "unitNumber is required" });
-    }
 
     const subscription = await Subscription.findOne({ unitNumber }).populate(
       "userID"
@@ -108,7 +136,6 @@ router.post("/getUserSubscriptionSummary", async (req, res) => {
       });
     }
 
-    // Return only selected fields
     const response = {
       name: subscription.userID.name,
       unitNumber: subscription.userID.unitNumber,
@@ -125,7 +152,7 @@ router.post("/getUserSubscriptionSummary", async (req, res) => {
   }
 });
 
-// Route to get all users with subscription status 'PEN'
+// === Get All Pending Approvals ===
 router.get("/getAllPendingApprovals", async (req, res) => {
   try {
     const results = await Subscription.find({ userSubscriptionStatus: "PEN" });
@@ -149,60 +176,52 @@ router.get("/getAllPendingApprovals", async (req, res) => {
   }
 });
 
-// Route to get all users with subscription status 'APR'
+// === Get All Users with 'APR' Status ===
 router.get("/getAllUsersWithApprStatusAPR", async (req, res) => {
   try {
-    const pendingUsers = await Subscription.find({
-      userSubscriptionStatus: "APR",
-    });
-
-    if (pendingUsers.length === 0) {
+    const users = await Subscription.find({ userSubscriptionStatus: "APR" });
+    if (users.length === 0) {
       return res
         .status(404)
         .json({ message: "No users found with status APR" });
     }
-
-    return res.status(200).json(pendingUsers);
+    return res.status(200).json(users);
   } catch (err) {
-    console.error("Error fetching users with status APR:", err);
+    console.error("Error fetching APR users:", err);
     return res.status(500).json({ message: "Server error" });
   }
 });
 
-// Route to get all users with subscription status 'REJ'
+// === Get All Users with 'REJ' Status ===
 router.get("/getAllUsersWithApprStatusREJ", async (req, res) => {
   try {
-    const pendingUsers = await Subscription.find({
-      userSubscriptionStatus: "REJ",
-    });
-
-    if (pendingUsers.length === 0) {
+    const users = await Subscription.find({ userSubscriptionStatus: "REJ" });
+    if (users.length === 0) {
       return res
         .status(404)
         .json({ message: "No users found with status REJ" });
     }
-
-    return res.status(200).json(pendingUsers);
+    return res.status(200).json(users);
   } catch (err) {
-    console.error("Error fetching users with status REJ:", err);
+    console.error("Error fetching REJ users:", err);
     return res.status(500).json({ message: "Server error" });
   }
 });
 
-// Update user approval status (PEN → APR or REJ)
+// === Update User Approval Status ===
 router.put("/updateUserApprovalStatus", async (req, res) => {
   const { unitNumber, newStatus, updatedBy } = req.body;
 
   if (!unitNumber || !newStatus) {
-    return res.status(400).json({
-      message: "Both unitNumber and newStatus are required.",
-    });
+    return res
+      .status(400)
+      .json({ message: "Both unitNumber and newStatus are required." });
   }
 
   if (!["APR", "REJ"].includes(newStatus)) {
-    return res.status(400).json({
-      message: "newStatus must be either 'APR' or 'REJ'.",
-    });
+    return res
+      .status(400)
+      .json({ message: "newStatus must be either 'APR' or 'REJ'." });
   }
 
   try {
@@ -211,7 +230,7 @@ router.put("/updateUserApprovalStatus", async (req, res) => {
       {
         userSubscriptionStatus: newStatus,
         userLastUpdatedDate: new Date(),
-        userLastUpdatedBy: updatedBy || "admin", // optional tracking
+        userLastUpdatedBy: updatedBy || "admin",
       },
       { new: true }
     );
@@ -226,8 +245,8 @@ router.put("/updateUserApprovalStatus", async (req, res) => {
       message: `User approval status updated to '${newStatus}' successfully.`,
       data: updated,
     });
-  } catch (error) {
-    console.error("Approval update error:", error);
+  } catch (err) {
+    console.error("Approval update error:", err);
     return res.status(500).json({ message: "Server error" });
   }
 });

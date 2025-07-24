@@ -249,17 +249,15 @@ router.post("/getEventCoupons", async (req, res) => {
       userCouponEvent,
     });
 
-    const grouped = {
-      BREAKFAST: [],
-      LUNCH: [],
-      DINNER: [],
-    };
+    const grouped = {};
 
-    for (const coupon of coupons) {
-      if (grouped[coupon.userCouponSubEvent]) {
-        grouped[coupon.userCouponSubEvent].push(coupon);
+    coupons.forEach((coupon) => {
+      const subEvent = coupon.userCouponSubEvent || "OTHER";
+      if (!grouped[subEvent]) {
+        grouped[subEvent] = [];
       }
-    }
+      grouped[subEvent].push(coupon);
+    });
 
     return res.status(200).json(grouped);
   } catch (err) {
