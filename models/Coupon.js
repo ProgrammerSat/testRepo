@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 
 const couponSchema = new mongoose.Schema({
-
   couponNomenclature: {
     type: String,
     required: true,
@@ -23,7 +22,7 @@ const couponSchema = new mongoose.Schema({
   },
   userCouponEvent: {
     type: String,
-    enum: ["SAPTAMI", "ASTAMI", "NABAMI", "DASHAMI"],
+    enum: ["SAPTAMI", "ASHTAMI", "NABAMI", "DASHAMI"],
     required: true,
   },
   userCouponSubEvent: {
@@ -39,7 +38,8 @@ const couponSchema = new mongoose.Schema({
   },
   userCouponMealType: {
     type: String,
-    enum: ["Veg", "NonVeg"],
+    enum: ["NA", "Veg", "NonVeg"],
+    default: "NA", // Default to "NA" if not specified
     required: true,
   },
   userCouponStatus: {
@@ -57,7 +57,8 @@ const couponSchema = new mongoose.Schema({
   },
   userCouponDineType: {
     type: String,
-    enum: ["DINE-IN", "TAKE-AWAY"],
+    enum: ["NA", "DINE-IN", "TAKE-AWAY"],
+    default: "NA", // Default to "NA" if not specified
     required: true,
   },
   userLastUpdatedDate: {
@@ -66,6 +67,11 @@ const couponSchema = new mongoose.Schema({
   },
   userLastUpdatedBy: {
     type: String, // You can store user ID, admin ID, or name
+  },
+  userCouponTakeAwayStatus: {
+    type: String,
+    enum: ["NA", "APPROVED", "PENDING", "REJECTED"],
+    default: "NA",
   },
 });
 

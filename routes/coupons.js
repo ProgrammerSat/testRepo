@@ -2,6 +2,84 @@ const express = require("express");
 const router = express.Router();
 const Coupon = require("../models/Coupon");
 const User = require("../models/User");
+const Subscription = require("../models/Subscription");
+
+// Update userCouponTakeAwayStatus
+router.post("/updateTakeAwayStatus", async (req, res) => {
+  const { couponId, action } = req.body;
+  // action can be 'request' (NA->PENDING), 'approve', or 'reject' (PENDING->APPROVED/REJECTED)
+  if (!couponId || !action) {
+    return res.status(400).json({ error: "couponId and action are required" });
+  }
+  try {
+    const coupon = await Coupon.findById(couponId);
+    if (!coupon) {
+      return res.status(404).json({ error: "Coupon not found" });
+    }
+    if (action === "request") {
+      if (coupon.userCouponDineType !== "TAKE-AWAY") {
+        return res.status(400).json({
+          error: "Dine type must be TAKE-AWAY to request take-away status",
+        });
+      }
+      if (coupon.userCouponTakeAwayStatus !== "NA") {
+        return res.status(400).json({
+          error: "Take-away status can only be set to PENDING from NA",
+        });
+      }
+      coupon.userCouponTakeAwayStatus = "PENDING";
+    } else if (action === "approve") {
+      if (coupon.userCouponTakeAwayStatus !== "PENDING") {
+        return res
+          .status(400)
+          .json({ error: "Can only approve a PENDING take-away request" });
+      }
+      coupon.userCouponTakeAwayStatus = "APPROVED";
+    } else if (action === "reject") {
+      if (coupon.userCouponTakeAwayStatus !== "PENDING") {
+        return res
+          .status(400)
+          .json({ error: "Can only reject a PENDING take-away request" });
+      }
+      coupon.userCouponTakeAwayStatus = "REJECTED";
+    } else {
+      return res.status(400).json({
+        error: "Invalid action. Use 'request', 'approve', or 'reject'",
+      });
+    }
+    await coupon.save();
+    return res
+      .status(200)
+      .json({ message: "Take-away status updated", coupon });
+  } catch (err) {
+    console.error("Error updating take-away status:", err);
+    return res
+      .status(500)
+      .json({ error: "Server error", details: err.message });
+  }
+});
+
+// Get all coupons with userCouponDineType as TAKE-AWAY
+router.get("/getAllTakeAwayCoupons", async (req, res) => {
+  try {
+    const coupons = await Coupon.find({
+      userCouponDineType: "TAKE-AWAY",
+      userCouponTakeAwayStatus: { $ne: "NA" },
+    });
+    return res.status(200).json({
+      message:
+        "All TAKE-AWAY coupons (excluding status 'NA') fetched successfully",
+      total: coupons.length,
+      coupons,
+    });
+  } catch (err) {
+    console.error("Error fetching TAKE-AWAY coupons:", err);
+    return res.status(500).json({
+      error: "Server error while fetching TAKE-AWAY coupons",
+      details: err.message,
+    });
+  }
+});
 
 //upload Coupons
 //Get Call to get Coupon details
@@ -37,6 +115,7 @@ router.post("/createCoupon", async (req, res) => {
       userCouponSubEvent,
       userCouponMealType,
       userCouponDineType,
+      userCouponTakeAwayStatus,
       userCouponValidFrom,
       userCouponValidTo,
       userLastUpdatedBy,
@@ -51,6 +130,7 @@ router.post("/createCoupon", async (req, res) => {
       !userCouponEvent ||
       !userCouponSubEvent ||
       !userCouponMealType ||
+      !userCouponTakeAwayStatus ||
       !userCouponDineType ||
       !userCouponValidFrom ||
       !userCouponValidTo
@@ -67,6 +147,7 @@ router.post("/createCoupon", async (req, res) => {
       userCouponSubEvent,
       userCouponMealType,
       userCouponDineType,
+      userCouponTakeAwayStatus,
       userCouponValidFrom: new Date(userCouponValidFrom),
       userCouponValidTo: new Date(userCouponValidTo),
       userLastUpdatedBy,
@@ -110,17 +191,35 @@ router.post("/redeemCoupon", async (req, res) => {
       return res.status(404).json({ error: "Coupon not found" });
     }
 
-    if (coupon.userCouponStatus === "REDEEMED") {
-      return res.status(400).json({ error: "Coupon already redeemed" });
-    }
-
     if (coupon.userCouponStatus === "EXPIRED") {
       return res
         .status(400)
         .json({ error: "Coupon is expired and cannot be redeemed" });
     }
 
-    // Update coupon status and dine type
+    // If already redeemed, allow changing between DINE-IN and TAKE-AWAY
+    if (coupon.userCouponStatus === "REDEEMED") {
+      if (
+        (coupon.userCouponDineType === "DINE-IN" && mode === "TAKE-AWAY") ||
+        (coupon.userCouponDineType === "TAKE-AWAY" && mode === "DINE-IN")
+      ) {
+        coupon.userCouponDineType = mode;
+        coupon.userLastUpdatedBy = updatedBy;
+        coupon.userLastUpdatedDate = new Date();
+        const updatedCoupon = await coupon.save();
+        return res.status(200).json({
+          message: `Coupon dine type updated to ${mode}`,
+          coupon: updatedCoupon,
+        });
+      } else {
+        return res.status(400).json({
+          error:
+            "Coupon already redeemed. Only DINE-IN <-> TAKE-AWAY change allowed.",
+        });
+      }
+    }
+
+    // Normal redeem flow
     coupon.userCouponStatus = "REDEEMED";
     coupon.userCouponDineType = mode;
     coupon.userLastUpdatedBy = updatedBy;
@@ -264,6 +363,204 @@ router.post("/getEventCoupons", async (req, res) => {
     return res
       .status(500)
       .json({ error: "Server error", details: err.message });
+  }
+});
+
+router.post("/redeemAllBreakfastCoupons", async (req, res) => {
+  const { unitNumber, updatedBy } = req.body;
+
+  if (!unitNumber || !updatedBy) {
+    return res
+      .status(400)
+      .json({ error: "unitNumber and updatedBy are required" });
+  }
+
+  try {
+    // Find user by unit number
+    const user = await User.findOne({ unitNumber });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Find all ACTIVE BREAKFAST coupons
+    const coupons = await Coupon.find({
+      userId: user._id,
+      userCouponSubEvent: "BREAKFAST",
+      userCouponStatus: "ACTIVE",
+    });
+
+    if (coupons.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "No active breakfast coupons found" });
+    }
+
+    // Redeem each coupon
+    const updatedCoupons = await Promise.all(
+      coupons.map(async (coupon) => {
+        coupon.userCouponStatus = "REDEEMED";
+        coupon.userLastUpdatedBy = updatedBy;
+        coupon.userLastUpdatedDate = new Date();
+        return await coupon.save();
+      })
+    );
+
+    return res.status(200).json({
+      message: "All active breakfast coupons redeemed successfully",
+      totalRedeemed: updatedCoupons.length,
+      coupons: updatedCoupons,
+    });
+  } catch (err) {
+    console.error("Error redeeming breakfast coupons:", err);
+    return res.status(500).json({
+      error: "Server error while redeeming breakfast coupons",
+      details: err.message,
+    });
+  }
+});
+
+// Redeem all LUNCH coupons
+router.post("/redeemAllLunchCoupons", async (req, res) => {
+  const { unitNumber, updatedBy } = req.body;
+
+  if (!unitNumber || !updatedBy) {
+    return res
+      .status(400)
+      .json({ error: "unitNumber and updatedBy are required" });
+  }
+
+  try {
+    const user = await User.findOne({ unitNumber });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const coupons = await Coupon.find({
+      userId: user._id,
+      userCouponStatus: "ACTIVE",
+      userCouponSubEvent: "LUNCH",
+    });
+
+    if (coupons.length === 0) {
+      return res.status(404).json({ error: "No active LUNCH coupons found" });
+    }
+
+    const updated = await Promise.all(
+      coupons.map((coupon) => {
+        coupon.userCouponStatus = "REDEEMED";
+        coupon.userLastUpdatedBy = updatedBy;
+        coupon.userLastUpdatedDate = new Date();
+        return coupon.save();
+      })
+    );
+
+    return res.status(200).json({
+      message: "All LUNCH coupons redeemed successfully",
+      coupons: updated,
+    });
+  } catch (err) {
+    console.error("Error redeeming LUNCH coupons:", err);
+    return res
+      .status(500)
+      .json({ error: "Server error", details: err.message });
+  }
+});
+
+// Redeem all DINNER coupons
+router.post("/redeemAllDinnerCoupons", async (req, res) => {
+  const { unitNumber, updatedBy } = req.body;
+
+  if (!unitNumber || !updatedBy) {
+    return res
+      .status(400)
+      .json({ error: "unitNumber and updatedBy are required" });
+  }
+
+  try {
+    const user = await User.findOne({ unitNumber });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const coupons = await Coupon.find({
+      userId: user._id,
+      userCouponStatus: "ACTIVE",
+      userCouponSubEvent: "DINNER",
+    });
+
+    if (coupons.length === 0) {
+      return res.status(404).json({ error: "No active DINNER coupons found" });
+    }
+
+    const updated = await Promise.all(
+      coupons.map((coupon) => {
+        coupon.userCouponStatus = "REDEEMED";
+        coupon.userLastUpdatedBy = updatedBy;
+        coupon.userLastUpdatedDate = new Date();
+        return coupon.save();
+      })
+    );
+
+    return res.status(200).json({
+      message: "All DINNER coupons redeemed successfully",
+      coupons: updated,
+    });
+  } catch (err) {
+    console.error("Error redeeming DINNER coupons:", err);
+    return res
+      .status(500)
+      .json({ error: "Server error", details: err.message });
+  }
+});
+
+router.get("/getAllCouponUnitNumbers", async (req, res) => {
+  try {
+    // Get distinct unitNumbers from Coupon collection
+    const unitNumbers = await Coupon.distinct("unitNumber");
+
+    return res.status(200).json({
+      message: "Unit numbers retrieved successfully",
+      unitNumbers,
+    });
+  } catch (err) {
+    console.error("Error retrieving unit numbers:", err);
+    return res
+      .status(500)
+      .json({ error: "Server error", details: err.message });
+  }
+});
+
+// Verify Secret Code for a Unit Number
+router.post("/verifySecretCode", async (req, res) => {
+  const { unitNumber, userSecretCode } = req.body;
+
+  if (!unitNumber || !userSecretCode) {
+    return res.status(400).json({
+      error: "unitNumber and secretCode are required",
+    });
+  }
+
+  try {
+    const user = await User.findOne({ unitNumber });
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    if (user.userSecretCode === userSecretCode) {
+      return res.status(200).json({
+        message: "Secret code verified successfully",
+        verified: true,
+      });
+    } else {
+      return res.status(401).json({
+        message: "Secret code does not match",
+        verified: false,
+      });
+    }
+  } catch (err) {
+    console.error("Error verifying secret code:", err);
+    return res.status(500).json({
+      error: "Server error",
+      details: err.message,
+    });
   }
 });
 
