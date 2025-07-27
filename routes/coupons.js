@@ -168,7 +168,7 @@ router.post("/createCoupon", async (req, res) => {
   }
 });
 
-//redeemCoupon
+// redeemCoupon
 router.post("/redeemCoupon", async (req, res) => {
   const { couponId, mode, updatedBy } = req.body;
 
@@ -206,6 +206,14 @@ router.post("/redeemCoupon", async (req, res) => {
         coupon.userCouponDineType = mode;
         coupon.userLastUpdatedBy = updatedBy;
         coupon.userLastUpdatedDate = new Date();
+
+        // Update take-away status accordingly
+        if (mode === "TAKE-AWAY" && coupon.userCouponTakeAwayStatus === "NA") {
+          coupon.userCouponTakeAwayStatus = "PENDING";
+        } else if (mode === "DINE-IN") {
+          coupon.userCouponTakeAwayStatus = "NA";
+        }
+
         const updatedCoupon = await coupon.save();
         return res.status(200).json({
           message: `Coupon dine type updated to ${mode}`,
@@ -224,6 +232,13 @@ router.post("/redeemCoupon", async (req, res) => {
     coupon.userCouponDineType = mode;
     coupon.userLastUpdatedBy = updatedBy;
     coupon.userLastUpdatedDate = new Date();
+
+    // Update take-away status accordingly
+    if (mode === "TAKE-AWAY" && coupon.userCouponTakeAwayStatus === "NA") {
+      coupon.userCouponTakeAwayStatus = "PENDING";
+    } else if (mode === "DINE-IN") {
+      coupon.userCouponTakeAwayStatus = "NA";
+    }
 
     const updatedCoupon = await coupon.save();
 
@@ -366,6 +381,7 @@ router.post("/getEventCoupons", async (req, res) => {
   }
 });
 
+// Redeem all BREAKFAST coupons
 router.post("/redeemAllBreakfastCoupons", async (req, res) => {
   const { unitNumber, updatedBy } = req.body;
 
@@ -402,6 +418,14 @@ router.post("/redeemAllBreakfastCoupons", async (req, res) => {
         coupon.userCouponStatus = "REDEEMED";
         coupon.userLastUpdatedBy = updatedBy;
         coupon.userLastUpdatedDate = new Date();
+        if (
+          coupon.userCouponDineType === "TAKE-AWAY" &&
+          coupon.userCouponTakeAwayStatus === "NA"
+        ) {
+          coupon.userCouponTakeAwayStatus = "PENDING";
+        } else if (coupon.userCouponDineType === "DINE-IN") {
+          coupon.userCouponTakeAwayStatus = "NA";
+        }
         return await coupon.save();
       })
     );
@@ -449,6 +473,14 @@ router.post("/redeemAllLunchCoupons", async (req, res) => {
         coupon.userCouponStatus = "REDEEMED";
         coupon.userLastUpdatedBy = updatedBy;
         coupon.userLastUpdatedDate = new Date();
+        if (
+          coupon.userCouponDineType === "TAKE-AWAY" &&
+          coupon.userCouponTakeAwayStatus === "NA"
+        ) {
+          coupon.userCouponTakeAwayStatus = "PENDING";
+        } else if (coupon.userCouponDineType === "DINE-IN") {
+          coupon.userCouponTakeAwayStatus = "NA";
+        }
         return coupon.save();
       })
     );
@@ -494,6 +526,14 @@ router.post("/redeemAllDinnerCoupons", async (req, res) => {
         coupon.userCouponStatus = "REDEEMED";
         coupon.userLastUpdatedBy = updatedBy;
         coupon.userLastUpdatedDate = new Date();
+        if (
+          coupon.userCouponDineType === "TAKE-AWAY" &&
+          coupon.userCouponTakeAwayStatus === "NA"
+        ) {
+          coupon.userCouponTakeAwayStatus = "PENDING";
+        } else if (coupon.userCouponDineType === "DINE-IN") {
+          coupon.userCouponTakeAwayStatus = "NA";
+        }
         return coupon.save();
       })
     );
