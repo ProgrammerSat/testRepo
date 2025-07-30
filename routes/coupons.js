@@ -17,7 +17,7 @@ router.post("/updateTakeAwayStatus", async (req, res) => {
       return res.status(404).json({ error: "Coupon not found" });
     }
     if (action === "request") {
-      if (coupon.userCouponDineType !== "TAKE-AWAY") {
+      if (coupon.userCouponRedeemStatus !== "TAKE-AWAY") {
         return res.status(400).json({
           error: "Dine type must be TAKE-AWAY to request take-away status",
         });
@@ -59,11 +59,11 @@ router.post("/updateTakeAwayStatus", async (req, res) => {
   }
 });
 
-// Get all coupons with userCouponDineType as TAKE-AWAY
+// Get all coupons with userCouponRedeemStatus as TAKE-AWAY
 router.get("/getAllTakeAwayCoupons", async (req, res) => {
   try {
     const coupons = await Coupon.find({
-      userCouponDineType: "TAKE-AWAY",
+      userCouponRedeemStatus: "TAKE-AWAY",
       userCouponTakeAwayStatus: { $ne: "NA" },
     });
     return res.status(200).json({
@@ -114,7 +114,7 @@ router.post("/createCoupon", async (req, res) => {
       userCouponEvent,
       userCouponSubEvent,
       userCouponStatus,
-      userCouponDineType,
+      userCouponRedeemStatus,
       userCouponTakeAwayStatus,
       userCouponValidFrom,
       userCouponValidTo,
@@ -130,7 +130,7 @@ router.post("/createCoupon", async (req, res) => {
       !userCouponSubEvent ||
       !userCouponTakeAwayStatus ||
       !userCouponStatus ||
-      !userCouponDineType ||
+      !userCouponRedeemStatus ||
       !userCouponValidFrom ||
       !userCouponValidTo
     ) {
@@ -144,7 +144,7 @@ router.post("/createCoupon", async (req, res) => {
       userCouponEvent,
       userCouponSubEvent,
       userCouponStatus,
-      userCouponDineType,
+      userCouponRedeemStatus,
       userCouponTakeAwayStatus,
       userCouponValidFrom: new Date(userCouponValidFrom),
       userCouponValidTo: new Date(userCouponValidTo),
@@ -204,10 +204,10 @@ router.post("/redeemCoupon", async (req, res) => {
     // If already redeemed, allow changing between DINE-IN and TAKE-AWAY
     if (coupon.userCouponStatus === "REDEEMED") {
       if (
-        (coupon.userCouponDineType === "DINE-IN" && mode === "TAKE-AWAY") ||
-        (coupon.userCouponDineType === "TAKE-AWAY" && mode === "DINE-IN")
+        (coupon.userCouponRedeemStatus === "DINE-IN" && mode === "TAKE-AWAY") ||
+        (coupon.userCouponRedeemStatus === "TAKE-AWAY" && mode === "DINE-IN")
       ) {
-        coupon.userCouponDineType = mode;
+        coupon.userCouponRedeemStatus = mode;
         coupon.userLastUpdatedBy = updatedBy;
         coupon.userLastUpdatedDate = new Date();
 
@@ -233,7 +233,7 @@ router.post("/redeemCoupon", async (req, res) => {
 
     // Normal redeem flow
     coupon.userCouponStatus = "REDEEMED";
-    coupon.userCouponDineType = mode;
+    coupon.userCouponRedeemStatus = mode;
     coupon.userLastUpdatedBy = updatedBy;
     coupon.userLastUpdatedDate = new Date();
 
@@ -423,11 +423,11 @@ router.post("/redeemAllBreakfastCoupons", async (req, res) => {
         coupon.userLastUpdatedBy = updatedBy;
         coupon.userLastUpdatedDate = new Date();
         if (
-          coupon.userCouponDineType === "TAKE-AWAY" &&
+          coupon.userCouponRedeemStatus === "TAKE-AWAY" &&
           coupon.userCouponTakeAwayStatus === "NA"
         ) {
           coupon.userCouponTakeAwayStatus = "PENDING";
-        } else if (coupon.userCouponDineType === "DINE-IN") {
+        } else if (coupon.userCouponRedeemStatus === "DINE-IN") {
           coupon.userCouponTakeAwayStatus = "NA";
         }
         return await coupon.save();
@@ -478,11 +478,11 @@ router.post("/redeemAllLunchCoupons", async (req, res) => {
         coupon.userLastUpdatedBy = updatedBy;
         coupon.userLastUpdatedDate = new Date();
         if (
-          coupon.userCouponDineType === "TAKE-AWAY" &&
+          coupon.userCouponRedeemStatus === "TAKE-AWAY" &&
           coupon.userCouponTakeAwayStatus === "NA"
         ) {
           coupon.userCouponTakeAwayStatus = "PENDING";
-        } else if (coupon.userCouponDineType === "DINE-IN") {
+        } else if (coupon.userCouponRedeemStatus === "DINE-IN") {
           coupon.userCouponTakeAwayStatus = "NA";
         }
         return coupon.save();
@@ -531,11 +531,11 @@ router.post("/redeemAllDinnerCoupons", async (req, res) => {
         coupon.userLastUpdatedBy = updatedBy;
         coupon.userLastUpdatedDate = new Date();
         if (
-          coupon.userCouponDineType === "TAKE-AWAY" &&
+          coupon.userCouponRedeemStatus === "TAKE-AWAY" &&
           coupon.userCouponTakeAwayStatus === "NA"
         ) {
           coupon.userCouponTakeAwayStatus = "PENDING";
-        } else if (coupon.userCouponDineType === "DINE-IN") {
+        } else if (coupon.userCouponRedeemStatus === "DINE-IN") {
           coupon.userCouponTakeAwayStatus = "NA";
         }
         return coupon.save();
