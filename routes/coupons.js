@@ -676,4 +676,48 @@ router.get("/dashboard/:unitNumber", async (req, res) => {
   }
 });
 
+router.post("/checkCouponsBySubEvent", async (req, res) => {
+  const { unitNumber, userCouponEvent, userCouponSubEvent } = req.body;
+
+  if (!unitNumber || !userCouponEvent || !userCouponSubEvent) {
+    return res.status(400).json({ error: "Missing required fields." });
+  }
+
+  try {
+    const currentISTTime = new Date(
+      new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+    );
+
+    const coupons = await Coupon.find({
+      unitNumber,
+      userCouponEvent,
+      userCouponSubEvent,
+    });
+
+    let updatedCount = 0;
+
+    for (const coupon of coupons) {
+      const isActive = coupon.userCouponValidFrom < currentISTTime;
+      const newStatus = isActive ? "ACTIVE" : "PENDING";
+
+      if (coupon.userCouponStatus !== newStatus) {
+        coupon.userCouponStatus = newStatus;
+        await coupon.save();
+        updatedCount++;
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: `Checked ${coupons.length} coupon(s), updated ${updatedCount}.`,
+      count: coupons.length,
+      updatedCount,
+      exists: coupons.length > 0,
+    });
+  } catch (error) {
+    console.error("Error checking coupons:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 module.exports = router;
