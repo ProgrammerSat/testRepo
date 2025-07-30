@@ -688,6 +688,12 @@ router.post("/checkCouponsBySubEvent", async (req, res) => {
       new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
     );
 
+    const coupons = await Coupon.find({
+      unitNumber,
+      userCouponEvent,
+      userCouponSubEvent,
+    });
+
     const userCouponValidFrom = coupons.userCouponValidFrom;
 
     const correctValidFromTime = new Date(
@@ -695,12 +701,6 @@ router.post("/checkCouponsBySubEvent", async (req, res) => {
         timeZone: "Asia/Kolkata",
       })
     );
-
-    const coupons = await Coupon.find({
-      unitNumber,
-      userCouponEvent,
-      userCouponSubEvent,
-    });
 
     let updatedCount = 0;
 
