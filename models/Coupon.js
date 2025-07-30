@@ -31,12 +31,12 @@ const couponSchema = new mongoose.Schema({
     default: new Date().getFullYear(),
     required: true,
   },
-  userCouponMealType: {
-    type: String,
-    enum: ["NA", "Veg", "NonVeg"],
-    default: "NA", // Default to "NA" if not specified
-    required: true,
-  },
+  // userCouponMealType: {
+  //   type: String,
+  //   enum: ["NA", "Veg", "NonVeg"],
+  //   default: "NA", // Default to "NA" if not specified
+  //   required: true,
+  // },
   userCouponStatus: {
     type: String,
     enum: ["PENDING", "ACTIVE", "EXPIRED", "REDEEMED"],

@@ -113,7 +113,7 @@ router.post("/createCoupon", async (req, res) => {
       unitNumber,
       userCouponEvent,
       userCouponSubEvent,
-      userCouponMealType,
+      userCouponStatus,
       userCouponDineType,
       userCouponTakeAwayStatus,
       userCouponValidFrom,
@@ -129,7 +129,6 @@ router.post("/createCoupon", async (req, res) => {
       !unitNumber ||
       !userCouponEvent ||
       !userCouponSubEvent ||
-      !userCouponMealType ||
       !userCouponTakeAwayStatus ||
       !userCouponStatus ||
       !userCouponDineType ||
@@ -146,7 +145,6 @@ router.post("/createCoupon", async (req, res) => {
       unitNumber,
       userCouponEvent,
       userCouponSubEvent,
-      userCouponMealType,
       userCouponStatus,
       userCouponDineType,
       userCouponTakeAwayStatus,
