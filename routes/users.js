@@ -329,6 +329,7 @@ router.post("/login", async (req, res) => {
         email: user.email,
         unitNumber: user.unitNumber,
         phoneNumber: user.phoneNumber,
+        userCpnActiveStatus: user.userCpnActiveStatus,
       },
     });
   } catch (err) {
@@ -433,6 +434,5 @@ router.post("/verifySecretCode", async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 });
-
 
 module.exports = router;

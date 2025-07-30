@@ -10,11 +10,6 @@ const couponSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
-  userSubscriptionId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Subscription",
-    required: true,
-  },
   unitNumber: {
     type: String,
     ref: "User",
@@ -44,8 +39,8 @@ const couponSchema = new mongoose.Schema({
   },
   userCouponStatus: {
     type: String,
-    enum: ["ACTIVE", "EXPIRED", "REDEEMED"],
-    default: "ACTIVE",
+    enum: ["PENDING", "ACTIVE", "EXPIRED", "REDEEMED"],
+    default: "PENDING",
   },
   userCouponValidFrom: {
     type: Date,
@@ -55,7 +50,7 @@ const couponSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
-  userCouponDineType: {
+  userCouponRedeemStatus: {
     type: String,
     enum: ["NA", "DINE-IN", "TAKE-AWAY"],
     default: "NA", // Default to "NA" if not specified

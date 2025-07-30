@@ -131,6 +131,7 @@ router.post("/createCoupon", async (req, res) => {
       !userCouponSubEvent ||
       !userCouponMealType ||
       !userCouponTakeAwayStatus ||
+      !userCouponStatus ||
       !userCouponDineType ||
       !userCouponValidFrom ||
       !userCouponValidTo
@@ -146,6 +147,7 @@ router.post("/createCoupon", async (req, res) => {
       userCouponEvent,
       userCouponSubEvent,
       userCouponMealType,
+      userCouponStatus,
       userCouponDineType,
       userCouponTakeAwayStatus,
       userCouponValidFrom: new Date(userCouponValidFrom),
@@ -195,6 +197,12 @@ router.post("/redeemCoupon", async (req, res) => {
       return res
         .status(400)
         .json({ error: "Coupon is expired and cannot be redeemed" });
+    }
+
+    if (coupon.userCouponValidFrom > new Date()) {
+      return res.status(400).json({
+        error: "Coupon is not valid yet",
+      });
     }
 
     // If already redeemed, allow changing between DINE-IN and TAKE-AWAY

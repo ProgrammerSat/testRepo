@@ -17,16 +17,7 @@ const userSchema = new mongoose.Schema(
       enum: [new Date().getFullYear()],
       default: new Date().getFullYear(),
     },
-    userSubscriptionStatus: {
-      type: String,
-      ref: "Subscription",
-      enum: ["PEN", "APR", "REJ"],
-    },
-    subID: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Subscription",
-    },
-    userCpnActiveStatus: { type: Boolean, required: true },
+    userCpnActiveStatus: { type: Boolean, required: false },
     userLastUpdatedDate: { type: Date, default: Date.now },
     userLastUpdatedBy: { type: String, default: null },
   },
