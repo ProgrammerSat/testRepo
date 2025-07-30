@@ -125,7 +125,6 @@ router.post("/createCoupon", async (req, res) => {
     if (
       !couponNomenclature ||
       !userId ||
-      !userSubscriptionId ||
       !unitNumber ||
       !userCouponEvent ||
       !userCouponSubEvent ||
@@ -141,7 +140,6 @@ router.post("/createCoupon", async (req, res) => {
     const newCoupon = new Coupon({
       couponNomenclature,
       userId,
-      userSubscriptionId,
       unitNumber,
       userCouponEvent,
       userCouponSubEvent,
