@@ -604,4 +604,72 @@ router.post("/verifySecretCode", async (req, res) => {
   }
 });
 
+router.get("/dashboard/:unitNumber", async (req, res) => {
+  const { unitNumber } = req.params;
+
+  if (!unitNumber) {
+    return res.status(400).json({ message: "unitNumber is required" });
+  }
+
+  try {
+    const coupons = await Coupon.find({ unitNumber });
+
+    const data = {};
+
+    coupons.forEach((coupon) => {
+      const event = coupon.userCouponEvent;
+      const subEvent = coupon.userCouponSubEvent;
+
+      if (!data[event]) {
+        data[event] = {};
+      }
+
+      if (!data[event][subEvent]) {
+        data[event][subEvent] = {
+          totalCoupons: 0,
+          redeemed: 0,
+          expired: 0,
+          takeAwayApproved: 0,
+          validFrom: coupon.userCouponValidFrom,
+          validTo: coupon.userCouponValidTo,
+        };
+      }
+
+      data[event][subEvent].totalCoupons += 1;
+
+      if (coupon.userCouponStatus === "REDEEMED") {
+        data[event][subEvent].redeemed += 1;
+      }
+
+      if (coupon.userCouponStatus === "EXPIRED") {
+        data[event][subEvent].expired += 1;
+      }
+
+      if (coupon.userCouponTakeAwayStatus === "APPROVED") {
+        data[event][subEvent].takeAwayApproved += 1;
+      }
+
+      // Ensure validFrom and validTo are the earliest and latest
+      data[event][subEvent].validFrom = new Date(
+        Math.min(
+          new Date(data[event][subEvent].validFrom),
+          new Date(coupon.userCouponValidFrom)
+        )
+      );
+
+      data[event][subEvent].validTo = new Date(
+        Math.max(
+          new Date(data[event][subEvent].validTo),
+          new Date(coupon.userCouponValidTo)
+        )
+      );
+    });
+
+    res.json(data);
+  } catch (err) {
+    console.error("Error getting dashboard data:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 module.exports = router;
