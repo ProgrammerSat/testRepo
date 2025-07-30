@@ -179,6 +179,7 @@ router.post("/login", async (req, res) => {
         userRole: user.userRole,
         unitNumber: user.unitNumber,
         phoneNumber: user.phoneNumber,
+        userCpnActiveStatus: user.userCpnActiveStatus,
       },
     });
   } catch (err) {
