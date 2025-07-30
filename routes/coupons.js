@@ -694,19 +694,17 @@ router.post("/checkCouponsBySubEvent", async (req, res) => {
       userCouponSubEvent,
     });
 
-    const userCouponValidFrom = coupons.userCouponValidFrom;
-
-    const correctValidFromTime = new Date(
-      userCouponValidFrom.toLocaleString("en-US", {
-        timeZone: "Asia/Kolkata",
-      })
-    );
-
     let updatedCount = 0;
 
     for (const coupon of coupons) {
-      const isActive = correctValidFromTime < currentISTTime;
-      const newStatus = isActive ? "ACTIVE" : "PENDING";
+      const validFromIST = new Date(
+        new Date(coupon.userCouponValidFrom).toLocaleString("en-US", {
+          timeZone: "Asia/Kolkata",
+        })
+      );
+
+      const shouldBeActive = validFromIST < currentISTTime;
+      const newStatus = shouldBeActive ? "ACTIVE" : "PENDING";
 
       if (coupon.userCouponStatus !== newStatus) {
         coupon.userCouponStatus = newStatus;
