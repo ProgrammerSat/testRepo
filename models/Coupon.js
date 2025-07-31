@@ -17,7 +17,7 @@ const couponSchema = new mongoose.Schema({
   },
   userCouponEvent: {
     type: String,
-    enum: ["SHASHTI", "SAPTAMI", "ASHTAMI", "NABAMI", "DASHAMI"],
+    enum: ["SHASHTI", "SAPTAMI", "ASHTAMI", "NAVAMI", "DASHAMI"],
     required: true,
   },
   userCouponSubEvent: {
