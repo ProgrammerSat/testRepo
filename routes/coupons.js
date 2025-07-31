@@ -702,12 +702,25 @@ router.post("/checkCouponsBySubEvent", async (req, res) => {
           timeZone: "Asia/Kolkata",
         })
       );
+      const validToIST = new Date(
+        new Date(coupon.userCouponValidTo).toLocaleString("en-US", {
+          timeZone: "Asia/Kolkata",
+        })
+      );
 
       const shouldBeActive = validFromIST < currentISTTime;
       const newStatus = shouldBeActive ? "ACTIVE" : "PENDING";
 
       if (coupon.userCouponStatus !== newStatus) {
         coupon.userCouponStatus = newStatus;
+        await coupon.save();
+        updatedCount++;
+      }
+      if (coupon.userCouponStatus === "REDEEMED") {
+        continue;
+      }
+      if (validToIST < currentISTTime) {
+        coupon.userCouponStatus = "EXPIRED";
         await coupon.save();
         updatedCount++;
       }
