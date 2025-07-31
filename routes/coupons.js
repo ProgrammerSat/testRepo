@@ -717,12 +717,30 @@ router.post("/checkCouponsBySubEvent", async (req, res) => {
         updatedCount++;
       }
       if (coupon.userCouponStatus === "REDEEMED") {
-        continue;
+        userCouponStatus = "REDEEMED";
       }
-      if (validToIST < currentISTTime) {
+      if (
+        coupon.userCouponStatus === "ACTIVE" &&
+        validFromIST > currentISTTime
+      ) {
+        coupon.userCouponStatus = "PENDING";
+        await coupon.save();
+        updatedCount++;
+      }
+      if (validToIST < currentISTTime && coupon.userCouponStatus === "ACTIVE") {
         coupon.userCouponStatus = "EXPIRED";
         await coupon.save();
         updatedCount++;
+      }
+      if (coupon.userCouponStatus === "EXPIRED") {
+        if (
+          coupon.userCouponRedeemStatus !== "NA" ||
+          coupon.userCouponTakeAwayStatus !== "NA"
+        ) {
+          coupon.userCouponStatus = "REDEEMED";
+          await coupon.save();
+          updatedCount++;
+        }
       }
     }
 
