@@ -708,19 +708,12 @@ router.post("/checkCouponsBySubEvent", async (req, res) => {
         })
       );
 
-      const shouldBeActive =
-        validFromIST < currentISTTime && coupon.userCouponStatus !== "REDEEMED";
-      const newStatus = shouldBeActive
-        ? "ACTIVE"
-        : this.toString(coupon.userCouponStatus);
-
-      if (coupon.userCouponStatus !== newStatus) {
+      if (coupon.userCouponStatus !== "REDEEMED") {
+        const shouldBeActive = validFromIST < currentISTTime;
+        const newStatus = shouldBeActive ? "ACTIVE" : coupon.userCouponStatus;
         coupon.userCouponStatus = newStatus;
         await coupon.save();
         updatedCount++;
-      }
-      if (coupon.userCouponStatus === "REDEEMED") {
-        userCouponStatus = "REDEEMED";
       }
       if (
         coupon.userCouponStatus === "ACTIVE" &&
