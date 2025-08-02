@@ -18,13 +18,14 @@ mongoose.connect(MONGO_URI, {
 });
 
 //Establishing connection with Mongo DB via mongoose
-const db = mongoose.connection;
+const dbConn = mongoose.connection;
 
 //Connection error message
-db.on("error", console.error.bind(console, "MongoDB connection error:"));
+dbConn.on("error", console.error.bind(console, "MongoDB connection error:"));
 
 //Console print if monoDB connection established or not, plus syncing Indexes
-db.once("open", async () => {
+dbConn.once("open", async () => {
+
   console.log("Connected to MongoDB");
   try {
     await User.syncIndexes(); // <-- Ensure indexes are in sync (unique constraints)

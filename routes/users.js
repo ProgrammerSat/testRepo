@@ -5,6 +5,9 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const secretKey = process.env.SECRET_KEY;
+const multer = require("multer");
+const { GridFsStorage } = require("multer-gridfs-storage");
+const upload = require("../middleware/upload");
 
 // Routes
 
@@ -437,5 +440,82 @@ router.post("/verifySecretCode", async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 });
+
+router.patch(
+  "/updateUserSubDetails",
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      if (req.file) {
+        return res.status(200).json({
+          message: "File uploaded successfully",
+          file: {
+            filename: req.file.filename,
+            id: req.file.id,
+            bucketName: req.file.bucketName,
+          },
+        });
+      }
+
+      const { updates } = req.body;
+
+      let parsedUpdates;
+
+      // Parse if sent as form-data (stringified)
+      if (typeof updates === "string") {
+        try {
+          parsedUpdates = JSON.parse(updates);
+        } catch (err) {
+          return res.status(400).json({ message: "Invalid JSON in updates" });
+        }
+      } else {
+        parsedUpdates = updates;
+      }
+
+      if (!Array.isArray(parsedUpdates) || parsedUpdates.length === 0) {
+        return res
+          .status(400)
+          .json({ message: "updates must be a non-empty array" });
+      }
+
+      const bulkOps = parsedUpdates.map((update) => {
+        const {
+          unitNumber,
+          userSubType,
+          userSubPaid,
+          userPaidAmt,
+          userCpnActiveStatus,
+          userLastUpdatedBy = "Admin",
+        } = update;
+
+        return {
+          updateOne: {
+            filter: { unitNumber },
+            update: {
+              ...(userSubType !== undefined && { userSubType }),
+              ...(userSubPaid !== undefined && { userSubPaid }),
+              ...(userPaidAmt !== undefined && { userPaidAmt }),
+              ...(userCpnActiveStatus !== undefined && {
+                userCpnActiveStatus,
+              }),
+              userLastUpdatedBy,
+              userLastUpdatedDate: new Date(),
+            },
+          },
+        };
+      });
+
+      const result = await User.bulkWrite(bulkOps);
+      res.status(200).json({
+        message: "Bulk update complete",
+        matchedCount: result.matchedCount,
+        modifiedCount: result.modifiedCount,
+      });
+    } catch (error) {
+      console.error("Bulk update error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  }
+);
 
 module.exports = router;
