@@ -90,8 +90,9 @@ router.post("/register", async (req, res) => {
     phoneNumber,
     userRole, // "U01", "U02", or "U03"
     userSecretCode,
-    subID, // optional, if user is already subscribed
-    userSubscriptionStatus, // "PEN", "APR", "REJ"
+    userSubType,
+    userSubPaid,
+    userPaidAmt,
     userCpnActiveStatus,
     userLastUpdatedBy, // optional, can default to null or a name
   } = req.body;
@@ -110,8 +111,9 @@ router.post("/register", async (req, res) => {
       userRole: userRole,
       userActive: true,
       userSecretCode,
-      subID,
-      userSubscriptionStatus,
+      userSubType,
+      userSubPaid,
+      userPaidAmt,
       userCpnActiveStatus,
       userLastUpdatedBy,
     });
