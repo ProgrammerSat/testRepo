@@ -363,7 +363,7 @@ router.post("/getEventCoupons", async (req, res) => {
     }
 
     const coupons = await Coupon.find({
-      userId: user.unitNumber,
+      userId: user._id,
       userCouponEvent,
     });
 
