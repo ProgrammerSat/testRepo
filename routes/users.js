@@ -444,55 +444,58 @@ router.post("/verifySecretCode", async (req, res) => {
   }
 });
 
-router.patch("/updateUserSubDetails", upload.any(), async (req, res) => {
-  if (!req.files || req.files.length === 0) {
-    return res.status(400).json({ message: "CSV file is required." });
-  }
+router.patch(
+  "/updateUserSubDetails",
+  upload.single("file"),
+  async (req, res) => {
+    const file = req.file;
 
-  const file = req.files[0];
+    if (!file) {
+      return res.status(400).json({ message: "CSV file is required." });
+    }
 
-  const results = [];
+    const results = [];
 
-  fs.createReadStream(file.path)
-    .pipe(csv())
-    .on("data", (data) => results.push(data))
-    .on("end", async () => {
-      try {
-        const bulkOps = results.map((row) => ({
-          updateOne: {
-            filter: { unitNumber: row.unitNumber },
-            update: {
-              ...(row.userSubType && { userSubType: row.userSubType }),
-              ...(row.userSubPaid && {
-                userSubPaid: row.userSubPaid === "true",
-              }),
-              ...(row.userPaidAmt && {
-                userPaidAmt: parseFloat(row.userPaidAmt),
-              }),
-              ...(row.userCpnActiveStatus && {
-                userCpnActiveStatus: row.userCpnActiveStatus === "true",
-              }),
-              userLastUpdatedBy: "Admin",
-              userLastUpdatedDate: new Date(),
+    fs.createReadStream(file.path)
+      .pipe(csv())
+      .on("data", (data) => results.push(data))
+      .on("end", async () => {
+        try {
+          const bulkOps = results.map((row) => ({
+            updateOne: {
+              filter: { unitNumber: row.unitNumber },
+              update: {
+                ...(row.userSubType && { userSubType: row.userSubType }),
+                ...(row.userSubPaid && {
+                  userSubPaid: row.userSubPaid === "true",
+                }),
+                ...(row.userPaidAmt && {
+                  userPaidAmt: parseFloat(row.userPaidAmt),
+                }),
+                ...(row.userCpnActiveStatus && {
+                  userCpnActiveStatus: row.userCpnActiveStatus === "true",
+                }),
+                userLastUpdatedBy: "Admin",
+                userLastUpdatedDate: new Date(),
+              },
             },
-          },
-        }));
+          }));
 
-        const result = await User.bulkWrite(bulkOps);
+          const result = await User.bulkWrite(bulkOps);
 
-        // Optional: Delete file after processing
-        fs.unlinkSync(req.file.path);
+          fs.unlinkSync(file.path); // delete file after processing
 
-        res.json({
-          message: "Users updated successfully.",
-          matched: result.matchedCount,
-          modified: result.modifiedCount,
-        });
-      } catch (error) {
-        console.error("Bulk update error:", error);
-        res.status(500).json({ message: "Bulk update failed." });
-      }
-    });
-});
+          res.json({
+            message: "Users updated successfully.",
+            matched: result.matchedCount,
+            modified: result.modifiedCount,
+          });
+        } catch (error) {
+          console.error("Bulk update error:", error);
+          res.status(500).json({ message: "Bulk update failed." });
+        }
+      });
+  }
+);
 
 module.exports = router;
