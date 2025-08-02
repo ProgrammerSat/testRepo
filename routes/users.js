@@ -8,7 +8,8 @@ const secretKey = process.env.SECRET_KEY;
 const multer = require("multer");
 const { GridFsStorage } = require("multer-gridfs-storage");
 const upload = require("../middleware/upload");
-
+const fs = require("fs");
+const csv = require("csv-parser");
 // Routes
 
 // GET all users
@@ -441,81 +442,53 @@ router.post("/verifySecretCode", async (req, res) => {
   }
 });
 
-router.patch(
-  "/updateUserSubDetails",
-  upload.single("file"),
-  async (req, res) => {
-    try {
-      if (req.file) {
-        return res.status(200).json({
-          message: "File uploaded successfully",
-          file: {
-            filename: req.file.filename,
-            id: req.file.id,
-            bucketName: req.file.bucketName,
-          },
-        });
-      }
+router.patch("/updateUserSubDetails", upload.any("file"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: "CSV file is required." });
+  }
 
-      const { updates } = req.body;
+  const results = [];
 
-      let parsedUpdates;
-
-      // Parse if sent as form-data (stringified)
-      if (typeof updates === "string") {
-        try {
-          parsedUpdates = JSON.parse(updates);
-        } catch (err) {
-          return res.status(400).json({ message: "Invalid JSON in updates" });
-        }
-      } else {
-        parsedUpdates = updates;
-      }
-
-      if (!Array.isArray(parsedUpdates) || parsedUpdates.length === 0) {
-        return res
-          .status(400)
-          .json({ message: "updates must be a non-empty array" });
-      }
-
-      const bulkOps = parsedUpdates.map((update) => {
-        const {
-          unitNumber,
-          userSubType,
-          userSubPaid,
-          userPaidAmt,
-          userCpnActiveStatus,
-          userLastUpdatedBy = "Admin",
-        } = update;
-
-        return {
+  fs.createReadStream(req.file.path)
+    .pipe(csv())
+    .on("data", (data) => results.push(data))
+    .on("end", async () => {
+      try {
+        const bulkOps = results.map((row) => ({
           updateOne: {
-            filter: { unitNumber },
+            filter: { unitNumber: row.unitNumber },
             update: {
-              ...(userSubType !== undefined && { userSubType }),
-              ...(userSubPaid !== undefined && { userSubPaid }),
-              ...(userPaidAmt !== undefined && { userPaidAmt }),
-              ...(userCpnActiveStatus !== undefined && {
-                userCpnActiveStatus,
+              ...(row.userSubType && { userSubType: row.userSubType }),
+              ...(row.userSubPaid && {
+                userSubPaid: row.userSubPaid === "true",
               }),
-              userLastUpdatedBy,
+              ...(row.userPaidAmt && {
+                userPaidAmt: parseFloat(row.userPaidAmt),
+              }),
+              ...(row.userCpnActiveStatus && {
+                userCpnActiveStatus: row.userCpnActiveStatus === "true",
+              }),
+              userLastUpdatedBy: "Admin",
               userLastUpdatedDate: new Date(),
             },
           },
-        };
-      });
+        }));
 
-      const result = await User.bulkWrite(bulkOps);
-      res.status(200).json({
-        message: "Bulk update complete",
-        matchedCount: result.matchedCount,
-        modifiedCount: result.modifiedCount,
-      });
-    } catch (error) {
-      console.error("Bulk update error:", error);
-      res.status(500).json({ message: "Internal server error" });
-    }
-  }
-);
+        const result = await User.bulkWrite(bulkOps);
+
+        // Optional: Delete file after processing
+        fs.unlinkSync(req.file.path);
+
+        res.json({
+          message: "Users updated successfully.",
+          matched: result.matchedCount,
+          modified: result.modifiedCount,
+        });
+      } catch (error) {
+        console.error("Bulk update error:", error);
+        res.status(500).json({ message: "Bulk update failed." });
+      }
+    });
+});
 
 module.exports = router;

@@ -25,7 +25,6 @@ dbConn.on("error", console.error.bind(console, "MongoDB connection error:"));
 
 //Console print if monoDB connection established or not, plus syncing Indexes
 dbConn.once("open", async () => {
-
   console.log("Connected to MongoDB");
   try {
     await User.syncIndexes(); // <-- Ensure indexes are in sync (unique constraints)

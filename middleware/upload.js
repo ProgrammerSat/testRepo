@@ -1,18 +1,13 @@
 // middleware/upload.js
 const multer = require("multer");
-const { GridFsStorage } = require("multer-gridfs-storage");
-require("dotenv").config();
+const path = require("path");
 
-const storage = new GridFsStorage({
-  url: process.env.MONGO_URI,
-  file: (req, file) => {
-    return new Promise((resolve, reject) => {
-      const fileInfo = {
-        filename: file.originalname,
-        bucketName: "uploads",
-      };
-      resolve(fileInfo);
-    });
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/"); // Make sure this folder exists
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "-" + file.originalname);
   },
 });
 
