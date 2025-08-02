@@ -451,11 +451,9 @@ router.patch("/updateUserSubDetails", upload.any(), async (req, res) => {
 
   const file = req.files[0];
 
-  fs.createReadStream(file.path);
-
   const results = [];
 
-  fs.createReadStream(req.file.path)
+  fs.createReadStream(file.path)
     .pipe(csv())
     .on("data", (data) => results.push(data))
     .on("end", async () => {
