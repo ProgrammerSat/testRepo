@@ -10,6 +10,8 @@ const { GridFsStorage } = require("multer-gridfs-storage");
 const upload = require("../middleware/upload");
 const fs = require("fs");
 const csv = require("csv-parser");
+
+const uploads = multer({ dest: "uploads/" });
 // Routes
 
 // GET all users
@@ -442,10 +444,14 @@ router.post("/verifySecretCode", async (req, res) => {
   }
 });
 
-router.patch("/updateUserSubDetails", upload.any("file"), async (req, res) => {
-  if (!req.file) {
+router.patch("/updateUserSubDetails", upload.any(), async (req, res) => {
+  if (!req.files || req.files.length === 0) {
     return res.status(400).json({ message: "CSV file is required." });
   }
+
+  const file = req.files[0];
+
+  fs.createReadStream(file.path);
 
   const results = [];
 
