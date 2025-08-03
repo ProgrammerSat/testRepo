@@ -795,6 +795,31 @@ router.post("/checkAndUpdateCouponStatuses", async (req, res) => {
         updated = true;
       }
 
+      if (
+        validToIST < currentISTTime &&
+        coupon.userCouponStatus === "PENDING"
+      ) {
+        coupon.userCouponStatus = "EXPIRED";
+        updated = true;
+      }
+
+      if (
+        validToIST > currentISTTime &&
+        coupon.userCouponStatus === "EXPIRED"
+      ) {
+        coupon.userCouponStatus = "ACTIVE";
+        updated = true;
+      }
+
+      // If validFrom passed and status is ACTIVE → make PENDING
+      if (
+        validFromIST > currentISTTime &&
+        coupon.userCouponStatus === "ACTIVE"
+      ) {
+        coupon.userCouponStatus = "PENDING";
+        updated = true;
+      }
+
       // If validTo passed and status is ACTIVE → make EXPIRED
       if (validToIST < currentISTTime && coupon.userCouponStatus === "ACTIVE") {
         coupon.userCouponStatus = "EXPIRED";
