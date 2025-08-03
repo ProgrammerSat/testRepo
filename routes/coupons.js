@@ -753,4 +753,70 @@ router.post("/checkCouponsBySubEvent", async (req, res) => {
   }
 });
 
+router.post("/checkAndUpdateCouponStatuses", async (req, res) => {
+  const { unitNumber } = req.body;
+
+  if (!unitNumber) {
+    return res.status(400).json({ error: "unitNumber is required." });
+  }
+
+  try {
+    const currentISTTime = new Date(
+      new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+    );
+
+    const coupons = await Coupon.find({ unitNumber });
+
+    let updatedCount = 0;
+
+    for (const coupon of coupons) {
+      // Skip already redeemed coupons
+      if (coupon.userCouponStatus === "REDEEMED") continue;
+
+      const validFromIST = new Date(
+        new Date(coupon.userCouponValidFrom).toLocaleString("en-US", {
+          timeZone: "Asia/Kolkata",
+        })
+      );
+      const validToIST = new Date(
+        new Date(coupon.userCouponValidTo).toLocaleString("en-US", {
+          timeZone: "Asia/Kolkata",
+        })
+      );
+
+      let updated = false;
+
+      // If validFrom passed and status is PENDING → make ACTIVE
+      if (
+        validFromIST <= currentISTTime &&
+        coupon.userCouponStatus === "PENDING"
+      ) {
+        coupon.userCouponStatus = "ACTIVE";
+        updated = true;
+      }
+
+      // If validTo passed and status is ACTIVE → make EXPIRED
+      if (validToIST < currentISTTime && coupon.userCouponStatus === "ACTIVE") {
+        coupon.userCouponStatus = "EXPIRED";
+        updated = true;
+      }
+
+      if (updated) {
+        await coupon.save();
+        updatedCount++;
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: `Checked ${coupons.length} coupon(s), updated ${updatedCount}.`,
+      count: coupons.length,
+      updatedCount,
+    });
+  } catch (error) {
+    console.error("Error updating coupon statuses:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 module.exports = router;
