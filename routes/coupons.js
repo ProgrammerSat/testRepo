@@ -844,4 +844,48 @@ router.post("/checkAndUpdateCouponStatuses", async (req, res) => {
   }
 });
 
+outer.post("/eodreports", async (req, res) => {
+  try {
+    const { eventDay } = req.body;
+
+    if (!eventDay) {
+      return res.status(400).json({ error: "eventDay is required" });
+    }
+
+    const subEvents = ["BREAKFAST", "LUNCH", "DINNER"];
+    const report = {};
+
+    for (const subEvent of subEvents) {
+      const [dineIn, takeAway, expired] = await Promise.all([
+        Coupon.countDocuments({
+          userCouponEvent: eventDay,
+          userCouponSubEvent: subEvent,
+          couponRedeemStatus: "DINE-IN",
+        }),
+        Coupon.countDocuments({
+          userCouponEvent: eventDay,
+          userCouponSubEvent: subEvent,
+          couponRedeemStatus: "TAKE-AWAY",
+        }),
+        Coupon.countDocuments({
+          userCouponEvent: eventDay,
+          userCouponSubEvent: subEvent,
+          couponStatus: "EXPIRED",
+        }),
+      ]);
+
+      report[subEvent] = {
+        "dine-in": dineIn,
+        "take-away": takeAway,
+        expired,
+      };
+    }
+
+    res.json({ eventDay, report });
+  } catch (err) {
+    console.error("Error generating EOD report:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 module.exports = router;
