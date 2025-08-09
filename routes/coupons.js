@@ -860,17 +860,17 @@ router.post("/eodreports", async (req, res) => {
         Coupon.countDocuments({
           userCouponEvent: eventDay,
           userCouponSubEvent: subEvent,
-          couponRedeemStatus: "DINE-IN",
+          userCouponRedeemStatus: "DINE-IN",
         }),
         Coupon.countDocuments({
           userCouponEvent: eventDay,
           userCouponSubEvent: subEvent,
-          couponRedeemStatus: "TAKE-AWAY",
+          userCouponRedeemStatus: "TAKE-AWAY",
         }),
         Coupon.countDocuments({
           userCouponEvent: eventDay,
           userCouponSubEvent: subEvent,
-          couponStatus: "EXPIRED",
+          userCouponStatus: "EXPIRED",
         }),
       ]);
 
