@@ -844,7 +844,7 @@ router.post("/checkAndUpdateCouponStatuses", async (req, res) => {
   }
 });
 
-outer.post("/eodreports", async (req, res) => {
+router.post("/eodreports", async (req, res) => {
   try {
     const { eventDay } = req.body;
 
