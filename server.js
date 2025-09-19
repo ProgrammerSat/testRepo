@@ -42,7 +42,7 @@ app.use(cors());
 
 //Invoke routes
 
-app.use("/users", usersRouter);
+app.use("/user", usersRouter);
 app.use("/subscription", subscriptionsRouter);
 app.use("/coupon", couponsRouter);
 
