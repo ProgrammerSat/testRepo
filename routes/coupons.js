@@ -888,4 +888,67 @@ router.post("/eodreports", async (req, res) => {
   }
 });
 
+// POST /redeemMultipleCoupons
+router.post("/redeemMultipleCoupons", async (req, res) => {
+  const { couponIds, mode, updatedBy } = req.body;
+
+  if (
+    !Array.isArray(couponIds) ||
+    couponIds.length === 0 ||
+    !mode ||
+    !updatedBy
+  ) {
+    return res.status(400).json({
+      error: "couponIds (array), mode, and updatedBy are required",
+    });
+  }
+
+  if (!["DINE-IN", "TAKE-AWAY"].includes(mode)) {
+    return res.status(400).json({
+      error: "Invalid mode. Must be 'DINE-IN' or 'TAKE-AWAY'",
+    });
+  }
+
+  try {
+    // Fetch all coupons that need to be redeemed
+    const coupons = await Coupon.find({
+      _id: { $in: couponIds },
+      userCouponStatus: { $ne: "REDEEMED" }, // Only redeem those not already redeemed
+    });
+
+    if (coupons.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "No valid coupons to redeem found among provided IDs" });
+    }
+
+    // Update coupons accordingly
+    for (let coupon of coupons) {
+      coupon.userCouponStatus = "REDEEMED";
+      coupon.userCouponRedeemStatus = mode;
+      coupon.userLastUpdatedBy = updatedBy;
+      coupon.userLastUpdatedDate = new Date();
+
+      if (mode === "TAKE-AWAY") {
+        coupon.userCouponTakeAwayStatus = "PENDING";
+      } else if (mode === "DINE-IN") {
+        coupon.userCouponTakeAwayStatus = "NA";
+      }
+
+      await coupon.save();
+    }
+
+    return res.status(200).json({
+      message: `${coupons.length} coupons redeemed successfully`,
+      redeemedCoupons: coupons,
+    });
+  } catch (err) {
+    console.error("Error redeeming multiple coupons:", err);
+    return res.status(500).json({
+      error: "Server error during multiple coupon redemption",
+      details: err.message,
+    });
+  }
+});
+
 module.exports = router;
