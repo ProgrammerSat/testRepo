@@ -856,7 +856,7 @@ router.post("/eodreports", async (req, res) => {
     const report = {};
 
     for (const subEvent of subEvents) {
-      const [dineIn, takeAway, expired] = await Promise.all([
+      const [active, dineIn, takeAway, expired] = await Promise.all([
         Coupon.countDocuments({
           userCouponEvent: eventDay,
           userCouponSubEvent: subEvent,
@@ -880,6 +880,7 @@ router.post("/eodreports", async (req, res) => {
       ]);
 
       report[subEvent] = {
+        active: active,
         "dine-in": dineIn,
         "take-away": takeAway,
         expired,
