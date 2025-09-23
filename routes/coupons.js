@@ -844,10 +844,11 @@ router.post("/checkAndUpdateCouponStatuses", async (req, res) => {
   }
 });
 
+const Coupon = require("../models/Coupon");
+
 router.post("/eodreports", async (req, res) => {
   try {
     const { eventDay } = req.body;
-
     if (!eventDay) {
       return res.status(400).json({ error: "eventDay is required" });
     }
@@ -855,37 +856,38 @@ router.post("/eodreports", async (req, res) => {
     const subEvents = ["BREAKFAST", "LUNCH", "DINNER"];
     const report = {};
 
-    for (const subEvent of subEvents) {
-      const [active, dineIn, takeAway, expired] = await Promise.all([
-        Coupon.countDocuments({
-          userCouponEvent: eventDay,
-          userCouponSubEvent: subEvent,
-          userCouponStatus: "ACTIVE",
-        }),
-        Coupon.countDocuments({
-          userCouponEvent: eventDay,
-          userCouponSubEvent: subEvent,
-          userCouponRedeemStatus: "DINE-IN",
-        }),
-        Coupon.countDocuments({
-          userCouponEvent: eventDay,
-          userCouponSubEvent: subEvent,
-          userCouponRedeemStatus: "TAKE-AWAY",
-        }),
-        Coupon.countDocuments({
-          userCouponEvent: eventDay,
-          userCouponSubEvent: subEvent,
-          userCouponStatus: "EXPIRED",
-        }),
-      ]);
-
-      report[subEvent] = {
-        active,
-        "dine-in": dineIn,
-        "take-away": takeAway,
-        expired,
-      };
-    }
+    await Promise.all(
+      subEvents.map(async (subEvent) => {
+        const [active, dineIn, takeAway, expired] = await Promise.all([
+          Coupon.countDocuments({
+            userCouponEvent: eventDay,
+            userCouponSubEvent: subEvent,
+            userCouponStatus: "ACTIVE",
+          }),
+          Coupon.countDocuments({
+            userCouponEvent: eventDay,
+            userCouponSubEvent: subEvent,
+            userCouponRedeemStatus: "DINE-IN",
+          }),
+          Coupon.countDocuments({
+            userCouponEvent: eventDay,
+            userCouponSubEvent: subEvent,
+            userCouponRedeemStatus: "TAKE-AWAY",
+          }),
+          Coupon.countDocuments({
+            userCouponEvent: eventDay,
+            userCouponSubEvent: subEvent,
+            userCouponStatus: "EXPIRED",
+          }),
+        ]);
+        report[subEvent] = {
+          active,
+          "dine-in": dineIn,
+          "take-away": takeAway,
+          expired,
+        };
+      })
+    );
 
     res.json({ eventDay, report });
   } catch (err) {
