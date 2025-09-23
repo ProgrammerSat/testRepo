@@ -632,6 +632,7 @@ router.get("/dashboard/:unitNumber", async (req, res) => {
         data[event][subEvent] = {
           totalCoupons: 0,
           redeemed: 0,
+          dineIn: 0,
           expired: 0,
           takeAwayApproved: 0,
           validFrom: coupon.userCouponValidFrom,
@@ -643,6 +644,10 @@ router.get("/dashboard/:unitNumber", async (req, res) => {
 
       if (coupon.userCouponStatus === "REDEEMED") {
         data[event][subEvent].redeemed += 1;
+      }
+
+      if (coupon.userCouponRedeemStatus === "DINE-IN") {
+        data[event][subEvent].dineIn += 1;
       }
 
       if (coupon.userCouponStatus === "EXPIRED") {
