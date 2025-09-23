@@ -843,9 +843,6 @@ router.post("/checkAndUpdateCouponStatuses", async (req, res) => {
     return res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
-const Coupon = require("../models/Coupon");
-
 router.post("/eodreports", async (req, res) => {
   try {
     const { eventDay } = req.body;
