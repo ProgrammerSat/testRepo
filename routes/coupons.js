@@ -880,7 +880,7 @@ router.post("/eodreports", async (req, res) => {
       ]);
 
       report[subEvent] = {
-        active: active,
+        active,
         "dine-in": dineIn,
         "take-away": takeAway,
         expired,
