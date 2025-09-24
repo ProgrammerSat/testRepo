@@ -961,4 +961,70 @@ router.post("/redeemMultipleCoupons", async (req, res) => {
   }
 });
 
+router.post("/progressiveReports", async (req, res) => {
+  try {
+    const { eventDay, userCouponSubEvent } = req.body;
+
+    if (!eventDay || !userCouponSubEvent) {
+      return res
+        .status(400)
+        .json({ error: "eventDay and userCouponSubEvent are required" });
+    }
+
+    // Fetch all coupons matching eventDay and userCouponSubEvent
+    const totalCoupons = await Coupon.countDocuments({
+      userCouponEvent: eventDay,
+      userCouponSubEvent,
+    });
+
+    const activeCoupons = await Coupon.countDocuments({
+      userCouponEvent: eventDay,
+      userCouponSubEvent,
+      userCouponStatus: "ACTIVE",
+    });
+
+    const expiredCoupons = await Coupon.countDocuments({
+      userCouponEvent: eventDay,
+      userCouponSubEvent,
+      userCouponStatus: "EXPIRED",
+    });
+
+    const redeemedCoupons = await Coupon.countDocuments({
+      userCouponEvent: eventDay,
+      userCouponSubEvent,
+      userCouponStatus: "REDEEMED",
+    });
+
+    const redeemedDineIn = await Coupon.countDocuments({
+      userCouponEvent: eventDay,
+      userCouponSubEvent,
+      userCouponStatus: "REDEEMED",
+      userCouponRedeemStatus: "DINE-IN",
+    });
+
+    const redeemedTakeAway = await Coupon.countDocuments({
+      userCouponEvent: eventDay,
+      userCouponSubEvent,
+      userCouponStatus: "REDEEMED",
+      userCouponRedeemStatus: "TAKE-AWAY",
+    });
+
+    return res.json({
+      eventDay,
+      userCouponSubEvent,
+      totalCoupons,
+      activeCoupons,
+      expiredCoupons,
+      redeemed: {
+        total: redeemedCoupons,
+        dineIn: redeemedDineIn,
+        takeAway: redeemedTakeAway,
+      },
+    });
+  } catch (err) {
+    console.error("Error generating progressive report:", err);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
 module.exports = router;
